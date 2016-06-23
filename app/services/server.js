@@ -8,12 +8,12 @@ var landsat = require('../controllers/es/landsat.js');
 var count = require('../controllers/es/count.js');
 var customGenerateKey = require('../libs/shared.js').customGenerateKey;
 
-var Server = function(port) {
+var Server = function Server(port) {
   this.port = port;
   this.hapi = null;
 };
 
-Server.prototype.start = function(cb) {
+Server.prototype.start = function (cb) {
   var self = this;
 
   var hapiOptions = {
@@ -48,8 +48,6 @@ Server.prototype.start = function(cb) {
     }];
   }
 
-
-
   // Initial Hapi
   self.hapi = new Hapi.Server(hapiOptions);
 
@@ -64,7 +62,7 @@ Server.prototype.start = function(cb) {
     options: {
       routes: './app/routes/*.js'
     }
-  }, function(err) {
+  }, function (err) {
     if (err) throw err;
   });
 
@@ -83,7 +81,7 @@ Server.prototype.start = function(cb) {
           'db': {}
         }
       }
-    }, function(err) {
+    }, function (err) {
       if (err) throw err;
     });
   }
@@ -99,7 +97,7 @@ Server.prototype.start = function(cb) {
       },
       routes: ['/landsat', '/count']
     }
-  }, function(err) {
+  }, function (err) {
     if (err) throw err;
   });
 
@@ -110,7 +108,7 @@ Server.prototype.start = function(cb) {
       limit: 1,
       routes: ['/landsat']
     }
-  }, function(err) {
+  }, function (err) {
     if (err) throw err;
   });
 
@@ -132,11 +130,11 @@ Server.prototype.start = function(cb) {
   self.hapi.register({
     register: require('good'),
     options: options
-  }, function(err) {
+  }, function (err) {
     if (err) throw err;
   });
 
-  self.hapi.register(require('inert'), (err) => {
+  self.hapi.register(require('inert'), function (err) {
     if (err) {
       throw err;
     }
@@ -195,7 +193,7 @@ Server.prototype.start = function(cb) {
   });
 
   // Start Hapi Server
-  self.hapi.start(function() {
+  self.hapi.start(function () {
     self.hapi.log(['info'], 'Server running at:' + self.hapi.info.uri);
     if (cb) {
       cb();
