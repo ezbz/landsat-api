@@ -1,17 +1,19 @@
 'use strict';
 
+var inert = require('inert');
+var path = require('path');
 var Hapi = require('hapi');
 var boolifyString = require('boolify-string');
 var landsat = require('../controllers/es/landsat.js');
 var count = require('../controllers/es/count.js');
 var customGenerateKey = require('../libs/shared.js').customGenerateKey;
 
-var Server = function (port) {
+var Server = function(port) {
   this.port = port;
   this.hapi = null;
 };
 
-Server.prototype.start = function (cb) {
+Server.prototype.start = function(cb) {
   var self = this;
 
   var hapiOptions = {
@@ -24,8 +26,8 @@ Server.prototype.start = function (cb) {
       }
     },
     debug: process.env.OR_DEBUG ? {
-      log: [ 'error' ],
-      request: [ 'error', 'received', 'response' ]
+      log: ['error'],
+      request: ['error', 'received', 'response']
     } : false
   };
 
@@ -36,23 +38,25 @@ Server.prototype.start = function (cb) {
 
   // Whether to use REDIS as cache
   if (boolifyString(process.env.REDIS_USE)) {
-    hapiOptions.cache = [
-      {
-        engine: require('catbox-redis'),
-        partition: 'cache',
-        host: process.env.REDIS_HOST || '127.0.0.1',
-        password: process.env.REDIS_PASSWORD || '',
-        database: process.env.REDIS_DATABASE || '',
-        port: process.env.REDIS_PORT || '6379'
-      }
-    ];
+    hapiOptions.cache = [{
+      engine: require('catbox-redis'),
+      partition: 'cache',
+      host: process.env.REDIS_HOST || '127.0.0.1',
+      password: process.env.REDIS_PASSWORD || '',
+      database: process.env.REDIS_DATABASE || '',
+      port: process.env.REDIS_PORT || '6379'
+    }];
   }
+
+
 
   // Initial Hapi
   self.hapi = new Hapi.Server(hapiOptions);
 
   // Specify the port to use
-  self.hapi.connection({ port: this.port });
+  self.hapi.connection({
+    port: this.port
+  });
 
   // Register hapi-router
   self.hapi.register({
@@ -60,7 +64,7 @@ Server.prototype.start = function (cb) {
     options: {
       routes: './app/routes/*.js'
     }
-  }, function (err) {
+  }, function(err) {
     if (err) throw err;
   });
 
@@ -76,10 +80,10 @@ Server.prototype.start = function (cb) {
       options: {
         'url': process.env.MONGODB_URL || 'mongodb://localhost/landsat-api',
         'settings': {
-            'db': {}
+          'db': {}
         }
       }
-    }, function (err) {
+    }, function(err) {
       if (err) throw err;
     });
   }
@@ -95,7 +99,7 @@ Server.prototype.start = function (cb) {
       },
       routes: ['/landsat', '/count']
     }
-  }, function (err) {
+  }, function(err) {
     if (err) throw err;
   });
 
@@ -106,7 +110,7 @@ Server.prototype.start = function (cb) {
       limit: 1,
       routes: ['/landsat']
     }
-  }, function (err) {
+  }, function(err) {
     if (err) throw err;
   });
 
@@ -115,7 +119,12 @@ Server.prototype.start = function (cb) {
     opsInterval: 1000,
     reporters: [{
       reporter: require('good-console'),
-      events: { log: '*', response: '*', request: '*', error: '*' }
+      events: {
+        log: '*',
+        response: '*',
+        request: '*',
+        error: '*'
+      }
     }]
   };
 
@@ -123,8 +132,54 @@ Server.prototype.start = function (cb) {
   self.hapi.register({
     register: require('good'),
     options: options
-  }, function (err) {
+  }, function(err) {
     if (err) throw err;
+  });
+
+  self.hapi.register(require('inert'), (err) => {
+    if (err) {
+      throw err;
+    }
+    self.hapi.route({
+      method: 'GET',
+      path: '/doc/{param*}',
+      handler: {
+        directory: {
+          path: 'doc',
+          listing: true
+        }
+      }
+    });
+    self.hapi.route({
+      method: 'GET',
+      path: '/vendor/{param*}',
+      handler: {
+        directory: {
+          path: 'doc/vendor',
+          listing: true
+        }
+      }
+    });
+    self.hapi.route({
+      method: 'GET',
+      path: '/css/{param*}',
+      handler: {
+        directory: {
+          path: 'doc/css',
+          listing: true
+        }
+      }
+    });
+    self.hapi.route({
+      method: 'GET',
+      path: '/{param*}',
+      handler: {
+        directory: {
+          path: 'doc',
+          listing: true
+        }
+      }
+    });
   });
 
   // Register Landsat method
@@ -140,7 +195,7 @@ Server.prototype.start = function (cb) {
   });
 
   // Start Hapi Server
-  self.hapi.start(function () {
+  self.hapi.start(function() {
     self.hapi.log(['info'], 'Server running at:' + self.hapi.info.uri);
     if (cb) {
       cb();
